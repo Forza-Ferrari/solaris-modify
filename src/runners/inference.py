@@ -95,17 +95,17 @@ class Inference(BaseMPRunner):
         if target_player_count == 2:
             return self.pretrained_checkpointer.restore(model_weights_path, model_state)
 
-        restore_template = model_state.copy()
-        restore_template["player_embed"] = self._create_player_embed_state(
+        target_player_embed_state = model_state["player_embed"]
+        model_state["player_embed"] = self._create_player_embed_state(
             num_players=2,
             model_dim=model_dim,
         )
         restored_state = self.pretrained_checkpointer.restore(
-            model_weights_path, restore_template
+            model_weights_path, model_state
         )
         restored_state["player_embed"] = self._resize_player_embed_state(
             restored_state["player_embed"],
-            model_state["player_embed"],
+            target_player_embed_state,
         )
         logging.info(
             "Expanded player_embed from checkpoint capacity 2 to runtime capacity %d",

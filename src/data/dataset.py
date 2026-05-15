@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -323,24 +324,35 @@ class DatasetMultiplayerN(TorchDataset):
         self._rng = random.Random(shuffle_bot_seed)
         self._episodes = {}
 
-        anchor_bot = self.bot_names[0]
-        mp4_files = sorted(
-            [p for p in self.directory.glob(f"*_{anchor_bot}_*.mp4")],
-            key=lambda p: p.name,
-        )
-        episode_id = 0
+        grouped_videos = defaultdict(dict)
+        discovered_bots = set()
+        for video_path in sorted(self.directory.glob("*.mp4"), key=lambda p: p.name):
+            matched_bot = None
+            template = None
+            for bot_name in self.bot_names:
+                token = f"_{bot_name}_"
+                if token in video_path.name:
+                    matched_bot = bot_name
+                    template = video_path.name.replace(token, "_{BOT}_", 1)
+                    break
+            if matched_bot is None:
+                continue
+            grouped_videos[template][matched_bot] = video_path
+            discovered_bots.add(matched_bot)
 
-        for anchor_video_path in mp4_files:
-            name = anchor_video_path.name
+        episode_id = 0
+        for template in sorted(grouped_videos.keys()):
+            bot_to_video = grouped_videos[template]
+            if not all(bot_name in bot_to_video for bot_name in self.bot_names):
+                continue
+
             video_paths = []
             actions_paths = []
             valid = True
             for bot_name in self.bot_names:
-                bot_video_path = self.directory / name.replace(
-                    f"_{anchor_bot}_", f"_{bot_name}_", 1
-                )
+                bot_video_path = bot_to_video[bot_name]
                 bot_actions_path = normalize_actions_path(bot_video_path)
-                if not bot_video_path.exists() or not bot_actions_path.exists():
+                if not bot_actions_path.exists():
                     valid = False
                     break
                 video_paths.append(bot_video_path.name)
@@ -358,6 +370,13 @@ class DatasetMultiplayerN(TorchDataset):
         logging.info(
             f"Dataset {self.dataset_name} loaded {self._num_episodes} episodes for {self.run_num_players} players. Data directory: {self.directory}"
         )
+        if self._num_episodes == 0:
+            logging.warning(
+                "No complete episodes found for bot_names=%s in %s. Discovered matching bots=%s",
+                self.bot_names,
+                self.directory,
+                sorted(discovered_bots),
+            )
 
     def action_dim(self):
         return len(minecraft.ACTION_KEYS)
