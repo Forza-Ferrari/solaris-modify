@@ -1,0 +1,9 @@
+defaults:
+  - single_player
+  - _self_
+
+network_config:
+  target: src.models.multiplayer.world_model.SolarisMPModel
+  params:
+    multiplayer_method: multiplayer_attn
+    num_players: 4

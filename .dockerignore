@@ -1,0 +1,11 @@
+.git
+.codex
+.cliproxyapi
+__pycache__
+*.pyc
+datasets
+pretrained
+output
+checkpoint
+jax_cache
+wandb

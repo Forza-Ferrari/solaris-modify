@@ -1,0 +1,9 @@
+train_dataset_name: ""
+test_dataset_name: ""
+class: src.data.dataset.DatasetMultiplayerN
+name: custom_multiplayer_n
+multiplayer: true
+additional_params:
+  bot_names: ["Bot0", "Bot1", "Bot2", "Bot3"]
+  run_num_players: 4
+  shuffle_bots: false
